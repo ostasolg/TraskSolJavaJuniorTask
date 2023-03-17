@@ -67,7 +67,7 @@ public class TechnologyController {
     }
 
 
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @DeleteMapping(value = "/{id}")
     public ResponseEntity<?> deleteTechnology(@PathVariable("id") Long id) {
 

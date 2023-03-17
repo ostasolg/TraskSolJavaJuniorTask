@@ -1,17 +1,20 @@
 package TraskSolTask.config;
 
+import TraskSolTask.model.knowledge.Knowledge;
 import TraskSolTask.model.technologies.Technology;
 import TraskSolTask.model.technologies.TechnologyLevel;
 import TraskSolTask.model.users.AuthRole;
 import TraskSolTask.model.users.User;
+import TraskSolTask.repository.knowledge.KnowledgeRepository;
 import TraskSolTask.repository.technologies.TechnologyRepository;
+import TraskSolTask.repository.users.UserRepository;
+import TraskSolTask.service.knowledge.KnowledgeService;
 import TraskSolTask.service.users.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import java.util.List;
-import java.util.Set;
 
 
 @Service
@@ -19,35 +22,34 @@ public class DBInit implements CommandLineRunner {
 
 
     @Autowired
-    UserService userService;
+    private UserService userService;
     @Autowired
-    TechnologyRepository technologyRepository;
+    private UserRepository userRepository;
+    @Autowired
+    private TechnologyRepository technologyRepository;
+    @Autowired
+    private KnowledgeRepository knowledgeRepository;
 
 
-    @CacheEvict(value = {"technologies", "users"}, allEntries = true)
+    @CacheEvict(value = {"technologies", "users", "knowledge"}, allEntries = true)
     @Override
     public void run(String... args) throws Exception {
 
 
-        // CREATE TECHNOLOGIES
+        // CREATING TECHNOLOGIES
 
         Technology technology1 = new Technology();
         technology1.setTechnologyName("Spring");
         technology1.setDetail("detail");
-        technology1.setNote("Some note");
-        technology1.setTechnologyLevel(TechnologyLevel.AVERAGE);
 
         Technology technology2 = new Technology();
         technology2.setTechnologyName("Kafka");
         technology2.setDetail("detail");
-        technology2.setNote("Some note");
-        technology2.setTechnologyLevel(TechnologyLevel.BEGINNER);
-
 
         technologyRepository.saveAll(List.of(technology1, technology2));
 
 
-        // CREATE USERS
+        // CREATING USERS
 
         User user = new User();
         user.setFirstName("Jana");
@@ -57,7 +59,6 @@ public class DBInit implements CommandLineRunner {
         user.setEmail("user@gmail.com");
         user.setTelephoneNumber("23949283849");
         user.setAuthRole(AuthRole.USER);
-        user.setTechnologies(Set.of(technology1, technology2));
 
         User admin = new User();
         admin.setFirstName("Fero");
@@ -70,5 +71,26 @@ public class DBInit implements CommandLineRunner {
 
         userService.create(user);
         userService.create(admin);
+
+
+        // ADDING TECHNOLOGIES TO THE USER
+
+        Knowledge knowledge1 = new Knowledge();
+        knowledge1.setUser(user);
+        knowledge1.setTechnology(technology1);
+        knowledge1.setTechnologyLevel(TechnologyLevel.AVERAGE);
+        knowledge1.setNote("some note");
+
+        Knowledge knowledge2 = new Knowledge();
+        knowledge2.setUser(user);
+        knowledge2.setTechnology(technology2);
+        knowledge2.setTechnologyLevel(TechnologyLevel.BEGINNER);
+        knowledge2.setNote("some note");
+
+        user.setNumberOfTechnologies((short) 2);
+
+        userRepository.save(user);
+        knowledgeRepository.saveAll(List.of(knowledge1, knowledge2));
+
     }
 }

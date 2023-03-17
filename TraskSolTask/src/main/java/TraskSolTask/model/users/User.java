@@ -1,7 +1,6 @@
 package TraskSolTask.model.users;
 
 import TraskSolTask.model.AbstractEntity;
-import TraskSolTask.model.technologies.Technology;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
@@ -12,7 +11,7 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-import java.util.Set;
+
 
 @JsonIgnoreProperties(value={ "password"}, allowSetters = true)
 @Getter
@@ -56,6 +55,6 @@ public class User extends AbstractEntity {
 
     private String telephoneNumber;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    private Set<Technology> technologies;
+    @NotNull
+    private short numberOfTechnologies = 0;
 }

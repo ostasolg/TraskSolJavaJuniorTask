@@ -1,6 +1,7 @@
 package TraskSolTask.service.users;
 
 import TraskSolTask.model.users.User;
+import TraskSolTask.repository.knowledge.KnowledgeRepository;
 import TraskSolTask.repository.users.UserRepository;
 import TraskSolTask.exceptions.NotFoundException;
 import TraskSolTask.exceptions.UserAccessException;
@@ -12,8 +13,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import javax.validation.ValidationException;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +25,8 @@ public class UserService {
     private UserRepository userRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private KnowledgeRepository knowledgeRepository;
 
 
     @Cacheable(value = "users")
@@ -40,9 +41,7 @@ public class UserService {
 
         Optional<User> userData = userRepository.findByUsername(username);
         if (userData.isPresent()) {
-            User user = userData.get();
-            validateUserAccess(user.getId(), "data of another user");
-            return user;
+            return userData.get();
         }
         throw NotFoundException.create("User", username);
     }
@@ -51,7 +50,6 @@ public class UserService {
     @Transactional
     public User getUserById(@NotNull Long id) throws NotFoundException {
 
-        validateUserAccess(id, "data of another user");
         Optional<User> userData = userRepository.findById(id);
         if (userData.isPresent()) {
             return userData.get();
@@ -65,53 +63,53 @@ public class UserService {
     public User create(@NotNull User user) {
         String newPassword = passwordEncoder.encode(user.getPassword());
         user.setPassword(newPassword);
-        if (user.getTechnologies() != null && user.getTechnologies().size() > 10) {
-            throw new ValidationException("A user can have a maximum of 10 technologies.");
-        }
         user = userRepository.save(user);
         return user;
     }
 
 
-    @CacheEvict(value = {"users"}, allEntries = true)
+    @CacheEvict(value = {"users", "knowledge"}, allEntries = true)
     @Transactional
     public User update(@NotNull Long id, @NotNull User newUser) {
 
         validateUserAccess(id, "data of another user and cannot edit it");
+
         User oldUser = getUserById(id);
 
-        oldUser.setUsername(newUser.getUsername());
-        oldUser.setAuthRole(newUser.getAuthRole());
-
+        // checking if user's password is also being updated
         if (newUser.getPassword() != null && newUser.getPassword().length() != 0) {
             oldUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
         }
 
+        oldUser.setUsername(newUser.getUsername());
+        oldUser.setAuthRole(newUser.getAuthRole());
         oldUser.setEmail(newUser.getEmail());
         oldUser.setTelephoneNumber(newUser.getTelephoneNumber());
         oldUser.setFirstName(newUser.getFirstName());
         oldUser.setLastName(newUser.getLastName());
 
-        if (newUser.getTechnologies() != null && newUser.getTechnologies().size() <= 10) {
-            oldUser.setTechnologies(newUser.getTechnologies());
-        }
-
         return userRepository.save(oldUser);
     }
 
 
-    @CacheEvict(value = {"users"}, allEntries = true)
+    @CacheEvict(value = {"users", "knowledge"}, allEntries = true)
     @Transactional
     public void delete(@NotNull Long id) {
         User userToDelete = getUserById(id);
+
+        // deleting all the technology - user relationships with the given user
+        knowledgeRepository.deleteAll(knowledgeRepository.findByUser(userToDelete));
+        // deleting the user
         userRepository.delete(userToDelete);
     }
 
 
     public void validateUserAccess(@NotNull Long id, String errorMessage) throws UserAccessException {
 
+        // checking if currently logged-in user can have access to user's data
         if (!Utils.getCurrent().getId().equals(id) &&
                 Utils.getCurrentAuthRole().equals(AuthRole.USER)) {
+            // currently logged-in user cannot have access to another user's data
             throw new UserAccessException("User with authentication role USER has no access to "
                     + errorMessage + ".");
         }
