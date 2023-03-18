@@ -82,7 +82,12 @@ public class UserService {
         }
 
         oldUser.setUsername(newUser.getUsername());
-        oldUser.setAuthRole(newUser.getAuthRole());
+
+        // checking if currently logged-in user has AuthRole Admin
+        if (Utils.getCurrentAuthRole().equals(AuthRole.ADMIN)) {
+            // editing AuthRole of the user
+            oldUser.setAuthRole(newUser.getAuthRole());
+        }
         oldUser.setEmail(newUser.getEmail());
         oldUser.setTelephoneNumber(newUser.getTelephoneNumber());
         oldUser.setFirstName(newUser.getFirstName());
